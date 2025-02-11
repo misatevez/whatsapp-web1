@@ -1,3 +1,4 @@
+import { DEFAULT_AVATAR } from "@/constants/constants"
 import { useState } from "react"
 import { MessageSquare, Users, LogOut } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -12,9 +13,9 @@ import { setActiveTab, setSelectedCategories } from "@/contexts/appActions"
 import { SearchBar } from "./SearchBar"
 import { CategoryFilters } from "./CategoryFilters"
 import { ChatList } from "@/components/shared/ChatList"
-
-const DEFAULT_AVATAR =
-  "https://firebasestorage.googleapis.com/v0/b/cargatusfichas.firebasestorage.app/o/admin%2Favatar.png?alt=media&token=54132d01-d241-429a-b131-1be8951406b7"
+import { auth } from "@/lib/firebase"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/contexts/ToastContext"
 
 interface AdminSidebarProps {
   adminProfile: AdminProfile
@@ -39,11 +40,30 @@ export function AdminSidebar({
   onUpdateAdminProfile,
   onAddContact,
   onOpenCategoryManagement,
-  onLogout
 }: AdminSidebarProps) {
   const { dispatch } = useAppContext()
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false)
+  const router = useRouter()
+  const { addToast } = useToast()
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut()
+      addToast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente"
+      })
+      router.push("/admin") // Redirect back to admin login
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error)
+      addToast({
+        title: "Error",
+        description: "No se pudo cerrar la sesión",
+        variant: "destructive"
+      })
+    }
+  }
 
   const filteredChats = chats.filter((chat) => {
     const matchesSearch = searchQuery ? (
@@ -89,7 +109,7 @@ export function AdminSidebar({
             variant="ghost"
             size="icon"
             className="text-[#aebac1] hover:text-red-500"
-            onClick={onLogout}
+            onClick={handleLogout}
           >
             <LogOut className="h-5 w-5" />
           </Button>

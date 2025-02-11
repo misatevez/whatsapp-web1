@@ -1,3 +1,4 @@
+import { WELCOME_MESSAGE } from "@/constants/constants"
 import { db } from "../firebase"
 import {
   collection,
@@ -82,12 +83,10 @@ export const sendWelcomeMessage = async (chatId: string): Promise<void> => {
     if (snapshot.empty) {
       console.log("[sendWelcomeMessage] Sending welcome message to chat:", chatId)
       
-      const welcomeMessage = "¡Hola! 👋 Bienvenido/a a nuestro servicio. ¿En qué puedo ayudarte hoy?"
-      
-      // Send welcome message
+      // Send welcome message using the constant
       const messageId = await sendMessage(
         chatId,
-        welcomeMessage,
+        WELCOME_MESSAGE,
         true, // isOutgoing true for admin messages
         "text"
       )
@@ -95,8 +94,8 @@ export const sendWelcomeMessage = async (chatId: string): Promise<void> => {
       // Update chat metadata
       const chatRef = doc(db, "chats", chatId)
       await updateDoc(chatRef, {
-        lastMessage: welcomeMessage,
-        lastMessageAdmin: welcomeMessage,
+        lastMessage: WELCOME_MESSAGE,
+        lastMessageAdmin: WELCOME_MESSAGE,
         lastMessageAdminTimestamp: serverTimestamp(),
         timestamp: serverTimestamp(),
         unreadCount: 0 // Reset unread count for welcome message

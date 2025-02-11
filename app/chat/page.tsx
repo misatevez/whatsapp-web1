@@ -2,24 +2,27 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { doc, getDoc, collection, query, orderBy, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { useToast } from "@/contexts/ToastContext"
+import { useAppContext } from "@/contexts/AppContext"
 import { ChatHeader } from "@/components/shared/chat-header"
 import { MessageList } from "@/components/shared/message-list"
 import { MessageInput } from "@/components/shared/message-input"
 import { InstallPWA } from "@/components/shared/InstallPWA"
 import { IOSInstallPrompt } from "@/components/shared/IOSInstallPrompt"
+import { BlockedUserMessage } from "@/components/shared/BlockedUserMessage"
 import { sendMessage } from "@/lib/firestore/messages"
 import { fetchAdminProfile } from "@/lib/firestore/adminProfile"
 import { fetchUserProfile, updateUserProfile } from "@/lib/firestore/users"
+import { DEFAULT_AVATAR } from "@/constants/constants"
+import { doc, onSnapshot, collection, query, orderBy, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import type { Chat, Message, AdminProfile, UserProfile, AdminStatus } from "@/types/interfaces"
-
-const DEFAULT_AVATAR = "https://firebasestorage.googleapis.com/v0/b/cargatusfichas.firebasestorage.apps/o/admin%2Favatar.png?..."
 
 function ChatContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const phoneNumber = searchParams.get("phone")
+  const { addToast } = useToast()
   
   const [chat, setChat] = useState<Chat | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -28,6 +31,23 @@ function ChatContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [adminStatuses, setAdminStatuses] = useState<AdminStatus[]>([])
+  const [isBlocked, setIsBlocked] = useState(false)
+
+  // Subscribe to chat document for block status
+  useEffect(() => {
+    if (!phoneNumber) return
+
+    const chatRef = doc(db, "chats", phoneNumber)
+    const unsubscribe = onSnapshot(chatRef, (doc) => {
+      if (doc.exists()) {
+        const chatData = doc.data() as Chat
+        setChat(chatData)
+        setIsBlocked(chatData.isBlocked || false)
+      }
+    })
+
+    return () => unsubscribe()
+  }, [phoneNumber])
 
   // Subscribe to admin statuses
   useEffect(() => {
@@ -231,6 +251,10 @@ function ChatContent() {
     return null
   }
 
+  if (isBlocked) {
+    return <BlockedUserMessage />
+  }
+
   return (
     <div className="flex flex-col h-full">
       <ChatHeader
@@ -263,11 +287,5 @@ function ChatContent() {
 }
 
 export default function ChatPage() {
-  return (
-    <>
-      <InstallPWA />
-      <IOSInstallPrompt />
-      <ChatContent />
-    </>
-  )
+  return <ChatContent />
 }

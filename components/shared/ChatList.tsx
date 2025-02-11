@@ -2,9 +2,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useAppContext } from "@/contexts/AppContext"
 import { setSelectedChat, updateChat } from "@/contexts/appActions"
+import { storage, db } from "@/lib/firebase"
+import { ref, getDownloadURL } from "firebase/storage"
+import { doc, deleteDoc } from "firebase/firestore"
+import { useEffect, useState } from "react"
+import { Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/contexts/ToastContext"
 import type { Chat } from "@/types/interfaces"
-
-const DEFAULT_AVATAR = "https://firebasestorage.googleapis.com/v0/b/cargatusfichas.firebasestorage.app/o/admin%2Favatar.png?alt=media&token=54132d01-d241-429a-b131-1be8951406b7"
+import { DEFAULT_AVATAR } from "@/constants/constants"
 
 function getDisplayTime(rawTimestamp: any): string {
   if (!rawTimestamp) return ""
@@ -61,6 +67,34 @@ interface ChatListProps {
 
 export function ChatList({ chats, selectedChatId }: ChatListProps) {
   const { dispatch } = useAppContext()
+  const { addToast } = useToast()
+  const [avatarUrls, setAvatarUrls] = useState<{ [key: string]: string }>({})
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
+
+  // Load user avatars from Firebase Storage
+  useEffect(() => {
+    const loadUserAvatars = async () => {
+      const urls: { [key: string]: string } = {}
+      
+      for (const chat of chats) {
+        if (chat.phoneNumber) {
+          try {
+            // Try to get user avatar from /users/{phoneNumber}/avatar path
+            const avatarRef = ref(storage, `users/${chat.phoneNumber}/avatar`)
+            const url = await getDownloadURL(avatarRef)
+            urls[chat.phoneNumber] = url
+          } catch (error) {
+            // If no user avatar found, use existing avatar or default
+            urls[chat.phoneNumber] = chat.userAvatar || chat.photoURL || chat.avatar || DEFAULT_AVATAR
+          }
+        }
+      }
+      
+      setAvatarUrls(urls)
+    }
+
+    loadUserAvatars()
+  }, [chats])
 
   const sortedChats = [...chats].sort((a, b) => {
     const aTime = parseTimestampToNumber(a.lastMessageUserTimestamp || a.lastMessageAdminTimestamp || a.timestamp)
@@ -79,6 +113,39 @@ export function ChatList({ chats, selectedChatId }: ChatListProps) {
     dispatch(setSelectedChat(chatId))
   }
 
+  const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation() // Prevent chat selection when clicking delete
+    
+    if (isDeleting) return // Prevent multiple deletes at once
+    
+    try {
+      setIsDeleting(chatId)
+      
+      // Delete chat document
+      const chatRef = doc(db, "chats", chatId)
+      await deleteDoc(chatRef)
+      
+      // If this was the selected chat, clear selection
+      if (selectedChatId === chatId) {
+        dispatch(setSelectedChat(null))
+      }
+      
+      addToast({
+        title: "Chat eliminado",
+        description: "La conversación se eliminó correctamente",
+      })
+    } catch (error) {
+      console.error("Error deleting chat:", error)
+      addToast({
+        title: "Error",
+        description: "No se pudo eliminar la conversación",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(null)
+    }
+  }
+
   return (
     <div className="flex-1 overflow-y-auto relative z-20 bg-[#111b21] hover:overflow-y-auto">
       {sortedChats.map((chat) => {
@@ -89,9 +156,7 @@ export function ChatList({ chats, selectedChatId }: ChatListProps) {
         const nameClass = badgeCount > 0 ? "text-white font-bold" : "text-[#e9edef] font-medium"
         const lastMessageClass = badgeCount > 0 ? "text-[#e9edef] font-bold" : "text-[#8696a0]"
         
-        // Use userAvatar field from chat document
-        const avatarUrl = chat.userAvatar || DEFAULT_AVATAR
-
+        const avatarUrl = avatarUrls[chat.phoneNumber] || DEFAULT_AVATAR
         const lastMessage = chat.lastMessageUser || chat.lastMessageAdmin || chat.lastMessage || ""
 
         return (
@@ -99,7 +164,7 @@ export function ChatList({ chats, selectedChatId }: ChatListProps) {
             key={chat.id}
             onClick={() => handleChatClick(chat.id)}
             className={cn(
-              "w-full flex items-center p-3 hover:bg-[#202c33] transition-colors cursor-pointer",
+              "w-full flex items-center p-3 hover:bg-[#202c33] transition-colors cursor-pointer group",
               selectedChatId === chat.id && "bg-[#202c33]",
             )}
           >
@@ -119,12 +184,27 @@ export function ChatList({ chats, selectedChatId }: ChatListProps) {
               </div>
               <div className="flex items-center gap-1">
                 {chat.online && <div className="w-2 h-2 rounded-full bg-[#00a884]" />}
-                <p className={cn("text-sm truncate", lastMessageClass)}>{lastMessage}</p>
-                {badgeCount > 0 && (
-                  <span className="ml-auto bg-[#00a884] text-white text-xs font-medium px-1.5 py-0.5 rounded-full">
-                    {badgeCount}
-                  </span>
-                )}
+                <p className={cn("text-sm truncate flex-1", lastMessageClass)}>{lastMessage}</p>
+                <div className="flex items-center gap-1 shrink-0">
+                  {badgeCount > 0 && (
+                    <span className="bg-[#00a884] text-white text-xs font-medium px-1.5 py-0.5 rounded-full">
+                      {badgeCount}
+                    </span>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-[#8696a0] hover:text-red-500 hover:bg-[#182229] opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => handleDeleteChat(e, chat.id)}
+                    disabled={isDeleting === chat.id}
+                  >
+                    {isDeleting === chat.id ? (
+                      <div className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
