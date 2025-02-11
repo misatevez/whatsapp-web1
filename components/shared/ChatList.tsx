@@ -1,10 +1,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useAppContext } from "@/contexts/AppContext"
-import { setSelectedChat, updateChat } from "@/contexts/appActions"
+import { setSelectedChat } from "@/contexts/appActions"
 import { storage, db } from "@/lib/firebase"
 import { ref, getDownloadURL } from "firebase/storage"
-import { doc, deleteDoc } from "firebase/firestore"
+import { collection, getDocs, writeBatch } from "firebase/firestore"
 import { useEffect, useState } from "react"
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -71,7 +71,6 @@ export function ChatList({ chats, selectedChatId }: ChatListProps) {
   const [avatarUrls, setAvatarUrls] = useState<{ [key: string]: string }>({})
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
-  // Load user avatars from Firebase Storage
   useEffect(() => {
     const loadUserAvatars = async () => {
       const urls: { [key: string]: string } = {}
@@ -103,13 +102,6 @@ export function ChatList({ chats, selectedChatId }: ChatListProps) {
   })
 
   const handleChatClick = (chatId: string) => {
-    dispatch(
-      updateChat({
-        id: chatId,
-        unreadCount: 0,
-        lastReadByAdmin: new Date().toISOString(),
-      }),
-    )
     dispatch(setSelectedChat(chatId))
   }
 
@@ -121,9 +113,16 @@ export function ChatList({ chats, selectedChatId }: ChatListProps) {
     try {
       setIsDeleting(chatId)
       
-      // Delete chat document
-      const chatRef = doc(db, "chats", chatId)
-      await deleteDoc(chatRef)
+      // Delete all messages in the messages subcollection
+      const messagesRef = collection(db, `chats/${chatId}/messages`)
+      const messagesSnapshot = await getDocs(messagesRef)
+      
+      // Use batch to delete all messages
+      const batch = writeBatch(db)
+      messagesSnapshot.docs.forEach(doc => {
+        batch.delete(doc.ref)
+      })
+      await batch.commit()
       
       // If this was the selected chat, clear selection
       if (selectedChatId === chatId) {
@@ -131,15 +130,15 @@ export function ChatList({ chats, selectedChatId }: ChatListProps) {
       }
       
       addToast({
-        title: "Chat eliminado",
-        description: "La conversación se eliminó correctamente",
+        title: "Mensajes eliminados",
+        description: "Se eliminó el historial de mensajes"
       })
     } catch (error) {
-      console.error("Error deleting chat:", error)
+      console.error("Error deleting messages:", error)
       addToast({
         title: "Error",
-        description: "No se pudo eliminar la conversación",
-        variant: "destructive",
+        description: "No se pudo eliminar el historial de mensajes",
+        variant: "destructive"
       })
     } finally {
       setIsDeleting(null)

@@ -8,7 +8,7 @@ export default function ChatLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="h-[100dvh] w-full bg-[#0b141a] text-[#e9edef] overflow-hidden relative">
+    <div className="pwa-container bg-[#0b141a] text-[#e9edef] overflow-hidden relative">
       <div 
         className="absolute inset-0 z-[1] opacity-[0.06] pointer-events-none"
         style={{

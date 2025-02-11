@@ -8,24 +8,23 @@ interface ThumbnailPreviewProps {
   type: "text" | "image" | "document"
   filename?: string
   onImageClick?: (imageUrl: string) => void
-  onDocumentClick?: (content: string, filename: string) => void
 }
 
-export function ThumbnailPreview({ content, type, filename, onImageClick, onDocumentClick }: ThumbnailPreviewProps) {
+export function ThumbnailPreview({ content, type, filename, onImageClick }: ThumbnailPreviewProps) {
   if (type === "image") {
     return (
       <div 
-        className="cursor-pointer group relative rounded-lg overflow-hidden"
+        className="cursor-pointer group relative max-w-[300px]"
         onClick={() => onImageClick?.(content)}
       >
-        <Image
-          src={content}
-          alt="Vista previa"
-          width={300}
-          height={300}
-          className="rounded-lg object-cover transition-transform group-hover:scale-[1.02]"
-        />
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative aspect-auto max-h-[300px] w-full overflow-hidden rounded-lg">
+          <img
+            src={content}
+            alt="Vista previa"
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
       </div>
     )
   }
@@ -34,7 +33,6 @@ export function ThumbnailPreview({ content, type, filename, onImageClick, onDocu
     return (
       <div
         className="flex items-center bg-[#2a3942] rounded-lg p-3 hover:bg-[#3a4952] transition-colors cursor-pointer group"
-        onClick={() => onDocumentClick?.(content, filename || "Documento")}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">

@@ -1,6 +1,6 @@
 import { db, storage } from "../firebase"
 import { collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore"
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage"
 import type { AdminStatus } from "@/types/interfaces"
 
 export async function fetchAdminStatuses(): Promise<AdminStatus[]> {
@@ -65,32 +65,65 @@ export async function deleteAdminStatus(statusId: string): Promise<void> {
 }
 
 export async function uploadStatusImage(file: File, onProgress?: (progress: number) => void): Promise<string> {
-  console.log("uploadStatusImage called")
-  const storageRef = ref(storage, `adminStatuses/${Date.now()}_${file.name}`)
+  console.log("uploadStatusImage called with file:", file.name)
+  
+  // Create a unique filename using timestamp and original name
+  const filename = `adminStatuses/${Date.now()}_${file.name}`
+  const storageRef = ref(storage, filename)
+  
   try {
-    const uploadTask = uploadBytes(storageRef, file)
-
-    if (onProgress) {
-      uploadTask.on("state_changed", (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-        onProgress(progress)
-      })
-    }
-
-    await uploadTask
-    const downloadURL = await getDownloadURL(storageRef)
-    console.log("uploadStatusImage successful, URL:", downloadURL)
-    return downloadURL
+    // Create upload task with uploadBytesResumable
+    const uploadTask = uploadBytesResumable(storageRef, file)
+    
+    // Return a promise that resolves with the download URL
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          // Handle progress updates
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+          console.log("Upload progress:", progress)
+          if (onProgress) {
+            onProgress(progress)
+          }
+        },
+        (error) => {
+          // Handle errors
+          console.error("Error during upload:", error)
+          reject(error)
+        },
+        async () => {
+          try {
+            // Get download URL when upload completes
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
+            console.log("Upload successful, URL:", downloadURL)
+            resolve(downloadURL)
+          } catch (error) {
+            console.error("Error getting download URL:", error)
+            reject(error)
+          }
+        }
+      )
+    })
   } catch (error) {
-    console.error("Error in uploadStatusImage:", error)
+    console.error("Error initiating upload:", error)
     throw error
   }
 }
 
 export async function deleteStatusImage(imageUrl: string): Promise<void> {
   console.log("deleteStatusImage called with:", imageUrl)
-  const imageRef = ref(storage, imageUrl)
+  
   try {
+    // Extract the path from the URL
+    const decodedUrl = decodeURIComponent(imageUrl)
+    const path = decodedUrl.split('/o/')[1]?.split('?')[0]
+    
+    if (!path) {
+      throw new Error("Invalid image URL")
+    }
+    
+    const imageRef = ref(storage, path)
     await deleteObject(imageRef)
     console.log("deleteStatusImage successful")
   } catch (error) {
@@ -98,4 +131,3 @@ export async function deleteStatusImage(imageUrl: string): Promise<void> {
     throw error
   }
 }
-

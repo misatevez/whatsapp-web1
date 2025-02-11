@@ -11,18 +11,17 @@ import { ProfileSettings } from "./ProfileSettings"
 import Image from "next/image"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { doc, onSnapshot } from "firebase/firestore"
+import { collection, doc, onSnapshot, query, orderBy } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import type { Message, AdminStatus } from "@/types/interfaces"
-
-const DEFAULT_AVATAR = "https://firebasestorage.googleapis.com/v0/b/cargatusfichas2.firebasestorage.app/o/admin%2Favatar.png?alt=media&token=54132d01-d241-429a-b131-1be8951406b7"
+import type { Message, AdminStatus, AdminProfile } from "@/types/interfaces"
+import { DEFAULT_AVATAR } from "@/constants/constants"
 
 export interface ChatHeaderProps {
   name: string
   avatar?: string
   online?: string
   userProfile?: any
-  adminProfile?: any
+  adminProfile: AdminProfile
   statuses: AdminStatus[]
   onSearch: (query: string) => void
   searchQuery: string
@@ -53,14 +52,17 @@ export function ChatHeader({
 
   // Subscribe to admin profile changes
   useEffect(() => {
+    console.log("Setting up admin profile subscription")
     const adminProfileRef = doc(db, "adminProfile", "main")
+    
     const unsubscribe = onSnapshot(adminProfileRef, (doc) => {
       if (doc.exists()) {
-        console.log("Admin profile updated:", doc.data())
-        setAdminProfile(doc.data())
+        const profileData = doc.data() as AdminProfile
+        console.log("Admin profile updated:", profileData)
+        setAdminProfile(profileData)
       }
     }, (error) => {
-      console.error("Error listening to admin profile:", error)
+      console.error("Error in admin profile subscription:", error)
     })
 
     return () => unsubscribe()
@@ -68,15 +70,29 @@ export function ChatHeader({
 
   // Subscribe to admin statuses changes
   useEffect(() => {
-    const statusesRef = doc(db, "adminStatuses", "active")
-    const unsubscribe = onSnapshot(statusesRef, (doc) => {
-      if (doc.exists()) {
-        console.log("Admin statuses updated:", doc.data())
-        const statusesData = doc.data()?.statuses || []
-        setStatuses(statusesData)
-      }
+    console.log("Setting up admin statuses subscription")
+    const statusesRef = collection(db, "adminStatuses")
+    const q = query(statusesRef, orderBy("timestamp", "desc"))
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newStatuses = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as AdminStatus[]
+      
+      // Filter statuses from the last 24 hours
+      const now = new Date()
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+      
+      const activeStatuses = newStatuses.filter(status => {
+        const statusDate = new Date(status.timestamp)
+        return statusDate > twentyFourHoursAgo
+      })
+
+      console.log("Admin statuses updated:", activeStatuses)
+      setStatuses(activeStatuses)
     }, (error) => {
-      console.error("Error listening to admin statuses:", error)
+      console.error("Error in admin statuses subscription:", error)
     })
 
     return () => unsubscribe()
@@ -85,7 +101,7 @@ export function ChatHeader({
   const handleStatusResponse = async (response: string, imageUrl: string) => {
     try {
       // First send the text response
-      await handleSendMessage(response, "text")
+      await handleSendMessage(response.trim(), "text")
       
       // Then send the image
       await handleSendMessage(imageUrl, "image")
