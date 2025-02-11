@@ -33,14 +33,12 @@ export function MessageInput({ chatId, onSendMessage }: MessageInputProps) {
   }
 
   const onEmojiSelect = (emojiData: any) => {
-    // Insert emoji at cursor position or append to end
     const emoji = emojiData.emoji
     const input = document.getElementById('message-input') as HTMLInputElement
     const cursorPos = input?.selectionStart || message.length
     const updatedMessage = message.slice(0, cursorPos) + emoji + message.slice(cursorPos)
     setMessage(updatedMessage)
     
-    // Focus back on input and move cursor after emoji
     setTimeout(() => {
       input?.focus()
       const newCursorPos = cursorPos + emoji.length
@@ -69,7 +67,7 @@ export function MessageInput({ chatId, onSendMessage }: MessageInputProps) {
   }
 
   return (
-    <div className="min-h-[62px] bg-[#202c33] flex items-center px-2 sm:px-4 gap-1 sm:gap-4 relative z-10 pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 min-h-[62px] bg-[#202c33] flex items-center px-2 sm:px-4 gap-1 sm:gap-4 pb-safe">
       <AttachmentPicker
         show={showAttachmentPicker}
         onToggle={() => setShowAttachmentPicker(!showAttachmentPicker)}
