@@ -67,7 +67,7 @@ export function MessageInput({ chatId, onSendMessage }: MessageInputProps) {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 min-h-[62px] bg-[#202c33] flex items-center px-2 sm:px-4 gap-1 sm:gap-4 pb-safe">
+    <div className="min-h-[62px] bg-[#202c33] flex items-center px-2 sm:px-3 gap-1 sm:gap-2 relative z-10 pb-safe">
       <AttachmentPicker
         show={showAttachmentPicker}
         onToggle={() => setShowAttachmentPicker(!showAttachmentPicker)}

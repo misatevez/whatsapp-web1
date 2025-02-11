@@ -21,13 +21,13 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Carga tus fichas ya",
+  title: "Cargatusfichas.com",
   description: "Envía y recibe mensajes sin mantener tu teléfono conectado",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Carga tus fichas ya",
+    title: "Cargatusfichas.com",
     startupImage: [ICON_URL]
   },
   formatDetection: {
