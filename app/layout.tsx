@@ -1,15 +1,7 @@
-"use client"
-
-import { useState, useEffect } from "react";
 import "./globals.css";
 import { Inter } from "next/font/google";
-import { AppProvider } from "@/contexts/AppContext";
-import { AuthProvider } from "@/contexts/auth-context";
-import { ToastProvider } from "@/contexts/ToastContext";
 import type { Metadata, Viewport } from "next";
-import type React from "react";
-import dynamic from "next/dynamic";
-import SplashScreen from "@/components/shared/SplashScreen"; // Importamos la Splash Screen
+import ClientLayout from "@/components/ClientLayout"; // Nuevo componente
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -50,23 +42,9 @@ export const metadata: Metadata = {
   },
 };
 
-const Providers = dynamic(() => import("@/components/Providers"), {
-  ssr: false,
-});
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoaded(true);
-    }, 2000); // Duración de la splash screen
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -77,8 +55,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" type="image/png" href={ICON_URL} />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className={`${inter.className} overscroll-none`} suppressHydrationWarning>
-        {!isLoaded ? <SplashScreen /> : <Providers>{children}</Providers>}
+      <body className={`${inter.className} overscroll-none`}>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
