@@ -67,38 +67,48 @@ export function MessageInput({ chatId, onSendMessage }: MessageInputProps) {
   }
 
   return (
-    <div className="min-h-[62px] flex items-center px-2 sm:px-3 gap-1 sm:gap-2 relative z-10 pb-safe">
-      <div className="absolute inset-x-2 top-2 bottom-2 bg-[#202c33] rounded-full sm:rounded-none -z-10" />
-      <AttachmentPicker
-        show={showAttachmentPicker}
-        onToggle={() => setShowAttachmentPicker(!showAttachmentPicker)}
-        onFileSelect={handleFileSelect}
-        disabled={isLoading}
-      />
-      <EmojiPickerComponent
-        showPicker={showEmojiPicker}
-        onToggle={() => setShowEmojiPicker(!showEmojiPicker)}
-        onEmojiSelect={onEmojiSelect}
-        disabled={isLoading}
-      />
-      <Input
-        id="message-input"
-        className="flex-1 bg-transparent text-[#d1d7db] placeholder:text-[#8696a0] border-none focus-visible:ring-0 h-10 sm:h-12 text-sm sm:text-base"
-        placeholder="Escribe un mensaje"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyPress={handleKeyPress}
-        disabled={isLoading}
-      />
-      <Button
-        variant="ghost"
-        size="icon"
-        className="text-[#8696a0] hover:bg-[rgba(134,150,160,0.1)] h-10 w-10 sm:h-12 sm:w-12"
-        onClick={handleSendMessage}
-        disabled={isLoading || !message.trim()}
-      >
-        <Send className="h-5 w-5 sm:h-6 sm:w-6" />
-      </Button>
+    <div className="relative min-h-[62px] px-2 sm:px-4 pb-safe">
+      {/* Background container with rounded corners */}
+      <div className="absolute inset-0 bg-[#202c33]" />
+      
+      {/* Content wrapper */}
+      <div className="relative flex items-center gap-1 sm:gap-2 h-[62px] px-1">
+        <AttachmentPicker
+          show={showAttachmentPicker}
+          onToggle={() => setShowAttachmentPicker(!showAttachmentPicker)}
+          onFileSelect={handleFileSelect}
+          disabled={isLoading}
+        />
+        
+        <EmojiPickerComponent
+          showPicker={showEmojiPicker}
+          onToggle={() => setShowEmojiPicker(!showEmojiPicker)}
+          onEmojiSelect={onEmojiSelect}
+          disabled={isLoading}
+        />
+        
+        <div className="flex-1 min-w-0 px-1">
+          <Input
+            id="message-input"
+            className="w-full bg-[#2a3942] text-[#d1d7db] placeholder:text-[#8696a0] border-none focus-visible:ring-0 h-10 sm:h-12 text-sm sm:text-base rounded-lg"
+            placeholder="Escribe un mensaje"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            disabled={isLoading}
+          />
+        </div>
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-[#8696a0] hover:bg-[rgba(134,150,160,0.1)] h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0"
+          onClick={handleSendMessage}
+          disabled={isLoading || !message.trim()}
+        >
+          <Send className="h-5 w-5 sm:h-6 sm:w-6" />
+        </Button>
+      </div>
     </div>
   )
 }
