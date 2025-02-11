@@ -1,6 +1,8 @@
 "use client"
 
-import type React from "react"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { validateSession, getSession } from "@/lib/auth"
 import { InstallPWA } from "@/components/shared/InstallPWA"
 
 export default function ChatLayout({
@@ -8,6 +10,31 @@ export default function ChatLayout({
 }: {
   children: React.ReactNode
 }) {
+  const router = useRouter()
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const phoneNumber = getSession()
+      console.log("[ChatLayout] Checking session:", { phoneNumber })
+      
+      if (!phoneNumber) {
+        console.log("[ChatLayout] No session found, redirecting to home")
+        router.push("/")
+        return
+      }
+
+      const isValid = await validateSession(phoneNumber)
+      console.log("[ChatLayout] Session validation result:", { isValid })
+      
+      if (!isValid) {
+        console.log("[ChatLayout] Invalid session, redirecting to home")
+        router.push("/")
+      }
+    }
+
+    checkSession()
+  }, [router])
+
   return (
     <div className="pwa-container bg-[#0b141a] text-[#e9edef] overflow-hidden relative">
       <InstallPWA />
