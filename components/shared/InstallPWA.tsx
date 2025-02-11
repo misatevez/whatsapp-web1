@@ -57,7 +57,7 @@ export function InstallPWA() {
       <DialogContent className="bg-[#111b21] border-none text-[#e9edef] max-w-[280px] p-4">
         <DialogHeader>
           <DialogTitle className="text-center text-base">
-            Instalar WhatsApp Web
+            Instalar Cargatusfichas.com
           </DialogTitle>
         </DialogHeader>
 
@@ -85,7 +85,7 @@ export function InstallPWA() {
           // Android Instructions
           <div className="space-y-4">
             <p className="text-sm text-[#8696a0] text-center">
-              Instala WhatsApp Web para una mejor experiencia:
+              Instala Cargatusfichas.com para una mejor experiencia:
             </p>
             <ul className="text-sm space-y-2 list-disc list-inside text-[#8696a0]">
               <li>Acceso rápido desde inicio</li>

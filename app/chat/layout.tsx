@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { InstallPWA } from "@/components/shared/InstallPWA"
 
 export default function ChatLayout({
   children,
@@ -9,6 +10,7 @@ export default function ChatLayout({
 }) {
   return (
     <div className="pwa-container bg-[#0b141a] text-[#e9edef] overflow-hidden relative">
+      <InstallPWA />
       <div 
         className="absolute inset-0 z-[1] opacity-[0.06] pointer-events-none"
         style={{
