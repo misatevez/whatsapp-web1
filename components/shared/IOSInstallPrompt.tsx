@@ -33,68 +33,52 @@ export function IOSInstallPrompt() {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="bg-[#111b21] border-none text-[#e9edef]">
+      <DialogContent className="bg-[#111b21] border-none text-[#e9edef] max-w-[280px] p-4">
         <DialogHeader>
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-2">
             <Image
               src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
               alt="WhatsApp Logo"
-              width={64}
-              height={64}
+              width={40}
+              height={40}
             />
           </div>
-          <DialogTitle className="text-center text-xl">
+          <DialogTitle className="text-center text-base">
             Instalar WhatsApp Web
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          <p className="text-center text-[#8696a0]">
-            Para instalar WhatsApp Web en tu iPhone:
-          </p>
-
-          <div className="space-y-4">
+        <div className="space-y-4">
+          <div className="space-y-3">
             {/* Step 1 */}
-            <div className="flex items-center gap-3 p-3 bg-[#2a3942] rounded-lg">
-              <div className="shrink-0 w-8 h-8 flex items-center justify-center bg-[#00a884] rounded-full">
-                <span className="text-white font-medium">1</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Share className="h-5 w-5 text-[#00a884]" />
-                <p className="text-sm">Toca el botón "Compartir"</p>
-              </div>
+            <div className="flex items-center gap-2 p-2 bg-[#2a3942] rounded-lg">
+              <Share className="h-4 w-4 text-[#00a884] shrink-0" />
+              <p className="text-xs">1. Toca el botón "Compartir"</p>
             </div>
 
             {/* Step 2 */}
-            <div className="flex items-center gap-3 p-3 bg-[#2a3942] rounded-lg">
-              <div className="shrink-0 w-8 h-8 flex items-center justify-center bg-[#00a884] rounded-full">
-                <span className="text-white font-medium">2</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Plus className="h-5 w-5 text-[#00a884]" />
-                <p className="text-sm">Selecciona "Agregar a Pantalla de inicio"</p>
-              </div>
+            <div className="flex items-center gap-2 p-2 bg-[#2a3942] rounded-lg">
+              <Plus className="h-4 w-4 text-[#00a884] shrink-0" />
+              <p className="text-xs">2. "Agregar a Pantalla de inicio"</p>
             </div>
 
-            {/* Preview */}
-            <div className="relative aspect-[9/16] max-w-[200px] mx-auto">
+            {/* Preview Image */}
+            <div className="relative aspect-[9/16] h-[120px] mx-auto">
               <Image
                 src="https://firebasestorage.googleapis.com/v0/b/cargatusfichas2.firebasestorage.app/o/admin%2Fios-install.png?alt=media"
                 alt="iOS Install Steps"
                 fill
-                className="object-contain rounded-2xl"
+                className="object-contain rounded-lg"
               />
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button
-              onClick={() => setIsOpen(false)}
-              className="bg-[#00a884] hover:bg-[#02906f] text-white"
-            >
-              Entendido
-            </Button>
-          </div>
+          <Button
+            onClick={() => setIsOpen(false)}
+            className="w-full bg-[#00a884] hover:bg-[#02906f] text-white text-sm py-2 h-8"
+          >
+            Entendido
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

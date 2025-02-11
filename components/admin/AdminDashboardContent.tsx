@@ -1,5 +1,4 @@
-"use client"
-
+import { DEFAULT_AVATAR } from "@/constants/constants"
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/contexts/ToastContext"

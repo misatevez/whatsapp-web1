@@ -8,7 +8,7 @@ import dynamic from 'next/dynamic'
 
 const inter = Inter({ subsets: ["latin"] })
 
-const ICON_URL = "https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
+const ICON_URL = "https://firebasestorage.googleapis.com/v0/b/cargatusfichas2.firebasestorage.app/o/admin%2Ffavicon.png?alt=media&token=b5607c23-a39a-409d-ba88-64969459e739"
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -21,13 +21,13 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "WhatsApp Web",
+  title: "Carga tus fichas ya",
   description: "Envía y recibe mensajes sin mantener tu teléfono conectado",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "WhatsApp Web",
+    title: "Carga tus fichas ya",
     startupImage: [ICON_URL]
   },
   formatDetection: {
@@ -44,7 +44,6 @@ export const metadata: Metadata = {
   }
 }
 
-// Dynamically import providers to avoid hydration issues
 const Providers = dynamic(() => import('@/components/Providers'), {
   ssr: false
 })

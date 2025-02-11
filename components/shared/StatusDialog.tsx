@@ -80,26 +80,29 @@ export function StatusDialog({ isOpen, onClose, statuses, onStatusResponse }: St
 
           {/* Navigation Controls */}
           {statuses.length > 1 && (
-            <div className="absolute top-1/2 -translate-y-1/2 w-full px-2 flex justify-between pointer-events-none">
+            <>
+              {/* Previous Button */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handlePrevious}
                 disabled={currentIndex === 0}
-                className="text-white hover:bg-black/20 pointer-events-auto h-8 w-8"
+                className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-black/20 h-8 w-8"
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
+
+              {/* Next Button */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleNext}
                 disabled={currentIndex === statuses.length - 1}
-                className="text-white hover:bg-black/20 pointer-events-auto h-8 w-8"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-black/20 h-8 w-8"
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>
-            </div>
+            </>
           )}
         </div>
 

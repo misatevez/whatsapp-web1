@@ -10,6 +10,50 @@ import { collection, query, orderBy, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { Message } from "@/types/interfaces"
 
+// URL detection regex pattern
+const URL_PATTERN = /(?:https?:\/\/)?(?:www\.)?([^\s<]+\.[^\s<]+)/gi
+
+// Function to convert URLs to clickable links
+const convertUrlsToLinks = (text: string) => {
+  const parts = text.split(URL_PATTERN)
+  const matches = text.match(URL_PATTERN)
+  
+  if (!matches) return text
+
+  const result = []
+  let i = 0
+
+  matches.forEach((url, index) => {
+    // Add text before URL
+    if (parts[i]) {
+      result.push(parts[i])
+    }
+
+    // Add URL as link
+    const fullUrl = url.startsWith('http') ? url : `https://${url}`
+    result.push(
+      <a
+        key={index}
+        href={fullUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[#53bdeb] underline hover:text-[#7ccbf0]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {url}
+      </a>
+    )
+    i += 2
+  })
+
+  // Add remaining text
+  if (parts[i]) {
+    result.push(parts[i])
+  }
+
+  return <>{result}</>
+}
+
 interface MessageListProps {
   messages: Message[]
   currentUserId: string
@@ -33,6 +77,7 @@ export const MessageList = React.memo(({
 }: MessageListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   // Subscribe to real-time message updates
   useEffect(() => {
@@ -81,6 +126,10 @@ export const MessageList = React.memo(({
     
     return 0
   }, [])
+
+  const handleImageClick = (imageUrl: string) => {
+    setSelectedImage(imageUrl)
+  }
 
   const filteredMessages = chatSearchQuery
     ? messages.filter((m) =>
@@ -135,41 +184,72 @@ export const MessageList = React.memo(({
   }, [currentUserId, lastMessageUserTimestamp, lastReadByAdmin, getTimestampMillis])
 
   return (
-    <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4">
-      {filteredMessages.map((message) => {
-        const isRightSide = invertOutgoing ? !message.isOutgoing : message.isOutgoing
-        const alignmentClass = isRightSide ? "justify-end" : "justify-start"
-        const bubbleColorClass = isRightSide ? "bg-[#005c4b]" : "bg-[#202c33]"
+    <>
+      <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4">
+        {filteredMessages.map((message) => {
+          const isRightSide = invertOutgoing ? !message.isOutgoing : message.isOutgoing
+          const alignmentClass = isRightSide ? "justify-end" : "justify-start"
+          const bubbleColorClass = isRightSide ? "bg-[#005c4b]" : "bg-[#202c33]"
 
-        return (
-          <div key={message.id} className={`flex ${alignmentClass} mb-2 sm:mb-4`}>
-            <div
-              className={`max-w-[85%] sm:max-w-[65%] rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 ${bubbleColorClass} ${
-                chatSearchQuery ? "bg-[#0b3d36]" : ""
-              }`}
-            >
-              {message.type === "text" ? (
-                <p className="text-sm sm:text-base text-[#e9edef] whitespace-pre-wrap">{message.content}</p>
-              ) : (
-                <ThumbnailPreview
-                  content={message.content}
-                  type={message.type}
-                  filename={message.filename}
-                />
-              )}
+          return (
+            <div key={message.id} className={`flex ${alignmentClass} mb-2 sm:mb-4`}>
+              <div
+                className={`max-w-[85%] sm:max-w-[65%] rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 ${bubbleColorClass} ${
+                  chatSearchQuery ? "bg-[#0b3d36]" : ""
+                }`}
+              >
+                {message.type === "text" ? (
+                  <p className="text-sm sm:text-base text-[#e9edef] whitespace-pre-wrap">
+                    {convertUrlsToLinks(message.content)}
+                  </p>
+                ) : (
+                  <ThumbnailPreview
+                    content={message.content}
+                    type={message.type}
+                    filename={message.filename}
+                    onImageClick={handleImageClick}
+                  />
+                )}
 
-              <div className="flex items-center justify-end gap-1 mt-0.5 sm:mt-1">
-                <span className="text-[10px] sm:text-xs text-[#8696a0]">
-                  {formatTimestamp(message.timestamp)}
-                </span>
-                {renderMessageStatus(message, isRightSide)}
+                <div className="flex items-center justify-end gap-1 mt-0.5 sm:mt-1">
+                  <span className="text-[10px] sm:text-xs text-[#8696a0]">
+                    {formatTimestamp(message.timestamp)}
+                  </span>
+                  {renderMessageStatus(message, isRightSide)}
+                </div>
               </div>
             </div>
-          </div>
-        )
-      })}
-      <div ref={messagesEndRef} />
-    </div>
+          )
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="bg-[#111b21] border-none text-[#e9edef] max-w-4xl p-0">
+          <DialogHeader className="bg-[#202c33] px-4 py-3 flex-row items-center justify-between">
+            <DialogTitle>Vista previa</DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedImage(null)}
+              className="text-[#aebac1] hover:text-[#e9edef]"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </DialogHeader>
+          {selectedImage && (
+            <div className="relative aspect-auto max-h-[80vh] w-full">
+              <img
+                src={selectedImage}
+                alt="Vista previa"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 })
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,9 +11,11 @@ import { ProfileSettings } from "./ProfileSettings"
 import Image from "next/image"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { doc, onSnapshot } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import type { Message, AdminStatus } from "@/types/interfaces"
 
-const DEFAULT_AVATAR = "https://firebasestorage.googleapis.com/v0/b/cargatusfichas2.firebasestorage.app/o/admin%2Favatar.png?alt=media&token=26f755ee-0f3d-4b4d-9d62-8d6eddea8421"
+const DEFAULT_AVATAR = "https://firebasestorage.googleapis.com/v0/b/cargatusfichas2.firebasestorage.app/o/admin%2Favatar.png?alt=media&token=54132d01-d241-429a-b131-1be8951406b7"
 
 export interface ChatHeaderProps {
   name: string
@@ -33,8 +35,8 @@ export function ChatHeader({
   avatar = DEFAULT_AVATAR,
   online,
   userProfile,
-  adminProfile,
-  statuses = [],
+  adminProfile: initialAdminProfile,
+  statuses: initialStatuses = [],
   onSearch = () => {},
   searchQuery = "",
   onUpdateProfile = () => {},
@@ -44,6 +46,41 @@ export function ChatHeader({
   const [isAdminContactOpen, setIsAdminContactOpen] = useState(false)
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
   const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false)
+  
+  // State for real-time updates
+  const [adminProfile, setAdminProfile] = useState(initialAdminProfile)
+  const [statuses, setStatuses] = useState(initialStatuses)
+
+  // Subscribe to admin profile changes
+  useEffect(() => {
+    const adminProfileRef = doc(db, "adminProfile", "main")
+    const unsubscribe = onSnapshot(adminProfileRef, (doc) => {
+      if (doc.exists()) {
+        console.log("Admin profile updated:", doc.data())
+        setAdminProfile(doc.data())
+      }
+    }, (error) => {
+      console.error("Error listening to admin profile:", error)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  // Subscribe to admin statuses changes
+  useEffect(() => {
+    const statusesRef = doc(db, "adminStatuses", "active")
+    const unsubscribe = onSnapshot(statusesRef, (doc) => {
+      if (doc.exists()) {
+        console.log("Admin statuses updated:", doc.data())
+        const statusesData = doc.data()?.statuses || []
+        setStatuses(statusesData)
+      }
+    }, (error) => {
+      console.error("Error listening to admin statuses:", error)
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   const handleStatusResponse = async (response: string, imageUrl: string) => {
     try {
@@ -86,8 +123,8 @@ export function ChatHeader({
             )}
             onClick={handleAvatarClick}
           >
-            <AvatarImage src={avatar} alt={name} />
-            <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarImage src={adminProfile?.avatar || avatar} alt={adminProfile?.name || name} />
+            <AvatarFallback>{(adminProfile?.name || name).slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
         </div>
         
@@ -96,7 +133,7 @@ export function ChatHeader({
           onClick={() => setIsAdminContactOpen(true)}
         >
           <h2 className="text-[#e9edef] text-sm sm:text-base font-medium truncate">
-            {name}
+            {adminProfile?.name || name}
           </h2>
           {online && (
             <p className="text-xs text-[#8696a0] truncate">
