@@ -76,7 +76,7 @@ html, body {
 }
 
 .safe-bottom {
-  padding-bottom: -20px;
+  padding-bottom: -100px;
 }
 
 .safe-left {
@@ -93,7 +93,7 @@ html, body {
   display: flex;
   flex-direction: column;
   padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: 0;
+  padding-bottom: -100px;
 }
 
 @layer base {
