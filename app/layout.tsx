@@ -1,15 +1,20 @@
-import "./globals.css"
-import { Inter } from "next/font/google"
-import { AppProvider } from "@/contexts/AppContext"
-import { AuthProvider } from "@/contexts/auth-context"
-import { ToastProvider } from "@/contexts/ToastContext"
-import type { Metadata, Viewport } from "next"
-import type React from "react"
-import dynamic from 'next/dynamic'
+"use client"
 
-const inter = Inter({ subsets: ["latin"] })
+import { useState, useEffect } from "react";
+import "./globals.css";
+import { Inter } from "next/font/google";
+import { AppProvider } from "@/contexts/AppContext";
+import { AuthProvider } from "@/contexts/auth-context";
+import { ToastProvider } from "@/contexts/ToastContext";
+import type { Metadata, Viewport } from "next";
+import type React from "react";
+import dynamic from "next/dynamic";
+import SplashScreen from "@/components/shared/SplashScreen"; // Importamos la Splash Screen
 
-const ICON_URL = "https://firebasestorage.googleapis.com/v0/b/cargatusfichas2.firebasestorage.app/o/admin%2Ffavicon.png?alt=media&token=b5607c23-a39a-409d-ba88-64969459e739"
+const inter = Inter({ subsets: ["latin"] });
+
+const ICON_URL =
+  "https://firebasestorage.googleapis.com/v0/b/cargatusfichas2.firebasestorage.app/o/admin%2Ffavicon.png?alt=media&token=b5607c23-a39a-409d-ba88-64969459e739";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -18,8 +23,8 @@ export const viewport: Viewport = {
   userScalable: false,
   themeColor: "#111b21",
   viewportFit: "cover",
-  minimumScale: 1
-}
+  minimumScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "Cargatusfichas.com",
@@ -29,7 +34,7 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Cargatusfichas.com",
-    startupImage: [ICON_URL]
+    startupImage: [ICON_URL],
   },
   formatDetection: {
     telephone: false,
@@ -40,16 +45,26 @@ export const metadata: Metadata = {
     apple: ICON_URL,
     other: {
       rel: "apple-touch-icon-precomposed",
-      url: ICON_URL
-    }
-  }
-}
+      url: ICON_URL,
+    },
+  },
+};
 
-const Providers = dynamic(() => import('@/components/Providers'), {
-  ssr: false
-})
+const Providers = dynamic(() => import("@/components/Providers"), {
+  ssr: false,
+});
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 2000); // Duración de la splash screen
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -63,8 +78,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={`${inter.className} overscroll-none`} suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        {!isLoaded ? <SplashScreen /> : <Providers>{children}</Providers>}
       </body>
     </html>
-  )
+  );
 }
