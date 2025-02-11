@@ -67,7 +67,8 @@ export function MessageInput({ chatId, onSendMessage }: MessageInputProps) {
   }
 
   return (
-    <div className="min-h-[62px] bg-[#202c33] flex items-center px-2 sm:px-3 gap-1 sm:gap-2 relative z-10 pb-safe">
+    <div className="min-h-[62px] flex items-center px-2 sm:px-3 gap-1 sm:gap-2 relative z-10 pb-safe">
+      <div className="absolute inset-x-2 top-2 bottom-2 bg-[#202c33] rounded-full sm:rounded-none -z-10" />
       <AttachmentPicker
         show={showAttachmentPicker}
         onToggle={() => setShowAttachmentPicker(!showAttachmentPicker)}
@@ -82,7 +83,7 @@ export function MessageInput({ chatId, onSendMessage }: MessageInputProps) {
       />
       <Input
         id="message-input"
-        className="flex-1 bg-[#2a3942] text-[#d1d7db] placeholder:text-[#8696a0] border-none focus-visible:ring-0 h-10 sm:h-12 text-sm sm:text-base"
+        className="flex-1 bg-transparent text-[#d1d7db] placeholder:text-[#8696a0] border-none focus-visible:ring-0 h-10 sm:h-12 text-sm sm:text-base"
         placeholder="Escribe un mensaje"
         value={message}
         onChange={(e) => setMessage(e.target.value)}

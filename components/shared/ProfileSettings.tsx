@@ -22,9 +22,9 @@ interface ProfileSettingsProps {
 }
 
 export function ProfileSettings({ isOpen, onClose, profile, onUpdate }: ProfileSettingsProps) {
-  const [name, setName] = useState(profile.name)
-  const [avatar, setAvatar] = useState(profile.avatar)
-  const [about, setAbout] = useState(profile.about || "")
+  const [name, setName] = useState(profile?.name || "")
+  const [avatar, setAvatar] = useState(profile?.avatar || "")
+  const [about, setAbout] = useState(profile?.about || "")
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const { addToast } = useToast()
@@ -116,7 +116,9 @@ export function ProfileSettings({ isOpen, onClose, profile, onUpdate }: ProfileS
             <div className="relative group">
               <Avatar className="h-32 w-32 border-2 border-[#00a884] transition-transform group-hover:scale-105">
                 <AvatarImage src={avatar} className="object-cover" />
-                <AvatarFallback className="bg-[#202c33] text-2xl">{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarFallback className="bg-[#202c33] text-2xl">
+                  {name?.slice(0, 2)?.toUpperCase() || "?"}
+                </AvatarFallback>
               </Avatar>
               <label
                 htmlFor="avatar-upload"
@@ -164,7 +166,7 @@ export function ProfileSettings({ isOpen, onClose, profile, onUpdate }: ProfileS
             <div className="space-y-2">
               <label className="text-xs text-[#8696a0] uppercase font-medium">Teléfono</label>
               <Input
-                value={profile.phoneNumber}
+                value={profile?.phoneNumber || ""}
                 readOnly
                 className="bg-[#2a3942] border-none text-[#8696a0] focus-visible:ring-1 focus-visible:ring-[#00a884] h-11"
               />
