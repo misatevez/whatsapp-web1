@@ -67,7 +67,7 @@ export function MessageInput({ chatId, onSendMessage }: MessageInputProps) {
   }
 
   return (
-    <div className="relative min-h-[62px] px-2 sm:px-4 pb-safe">
+    <div className="relative min-h-[62px] px-2 sm:px-4 pb-safe safe-bottom">
       {/* Background container with rounded corners */}
       <div className="absolute inset-0 bg-[#202c33]" />
       
