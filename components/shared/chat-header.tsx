@@ -1,88 +1,49 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, MoreVertical } from "lucide-react"
-import { ProfileSettings } from "./ProfileSettings"
+import { Search, MoreVertical, User } from "lucide-react"
 import { AdminContactCard } from "./AdminContactCard"
 import { StatusDialog } from "./StatusDialog"
+import { ProfileSettings } from "./ProfileSettings"
 import Image from "next/image"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { cn } from "@/lib/utils"
 import type { Message, AdminStatus } from "@/types/interfaces"
 
-const DEFAULT_AVATAR =
-  "https://firebasestorage.googleapis.com/v0/b/cargatusfichas2.firebasestorage.app/o/admin%2Favatar.png?alt=media&token=26f755ee-0f3d-4b4d-9d62-8d6eddea8421"
+const DEFAULT_AVATAR = "https://firebasestorage.googleapis.com/v0/b/cargatusfichas2.firebasestorage.app/o/admin%2Favatar.png?alt=media&token=26f755ee-0f3d-4b4d-9d62-8d6eddea8421"
 
 export interface ChatHeaderProps {
   name: string
   avatar?: string
   online?: string
   userProfile?: any
-  isUserChat?: boolean
   adminProfile?: any
-  statuses: any[]
+  statuses: AdminStatus[]
   onSearch: (query: string) => void
   searchQuery: string
-  onUpdateProfile: (name: string, avatar: string, about: string) => void
+  onUpdateProfile?: (name: string, avatar: string, about: string) => void
   handleSendMessage: (content: string, type: "text" | "image" | "document") => Promise<void>
 }
 
 export function ChatHeader({
   name,
-  avatar,
+  avatar = DEFAULT_AVATAR,
   online,
   userProfile,
-  isUserChat = false,
   adminProfile,
-  statuses,
+  statuses = [],
   onSearch = () => {},
   searchQuery = "",
-  onUpdateProfile,
+  onUpdateProfile = () => {},
   handleSendMessage,
 }: ChatHeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false)
   const [isAdminContactOpen, setIsAdminContactOpen] = useState(false)
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
-  const [adminStatuses, setAdminStatuses] = useState<AdminStatus[]>([])
-  const [hasActiveStatus, setHasActiveStatus] = useState(false)
-
-  useEffect(() => {
-    // Subscribe to admin statuses
-    const statusesRef = collection(db, "adminStatuses")
-    const q = query(statusesRef, orderBy("timestamp", "desc"))
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const statuses = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as AdminStatus[]
-
-      // Filter statuses from the last 24 hours
-      const now = new Date()
-      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-      
-      const activeStatuses = statuses.filter(status => {
-        const statusDate = new Date(status.timestamp)
-        return statusDate > twentyFourHoursAgo
-      })
-
-      setAdminStatuses(activeStatuses)
-      setHasActiveStatus(activeStatuses.length > 0)
-    })
-
-    return () => unsubscribe()
-  }, [])
-
-  const handleSearch = (query: string) => {
-    if (typeof onSearch === "function") {
-      onSearch(query)
-    }
-  }
+  const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false)
 
   const handleStatusResponse = async (response: string, imageUrl: string) => {
     try {
@@ -96,23 +57,38 @@ export function ChatHeader({
     }
   }
 
+  const handleAvatarClick = () => {
+    if (statuses.length > 0) {
+      setIsStatusDialogOpen(true)
+    } else {
+      setIsAdminContactOpen(true)
+    }
+  }
+
+  const hasActiveStatus = statuses.length > 0
+
   return (
     <header className="h-[60px] bg-[#202c33] flex items-center justify-between px-2 sm:px-4 relative z-50 pt-safe">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div className="relative">
+          {/* Status Ring */}
+          {hasActiveStatus && (
+            <div className="absolute -inset-1 rounded-full bg-[#00a884]">
+              <div className="absolute inset-[2px] rounded-full bg-[#202c33]" />
+            </div>
+          )}
+          
+          {/* Avatar */}
           <Avatar 
-            className={`h-10 w-10 cursor-pointer ${hasActiveStatus ? 'ring-2 ring-[#00a884]' : ''}`}
-            onClick={() => hasActiveStatus && setIsStatusDialogOpen(true)}
+            className={cn(
+              "h-10 w-10 cursor-pointer relative",
+              hasActiveStatus && "ring-2 ring-[#00a884] ring-offset-2 ring-offset-[#202c33]"
+            )}
+            onClick={handleAvatarClick}
           >
-            <AvatarImage
-              src={avatar || DEFAULT_AVATAR}
-              alt={name}
-            />
+            <AvatarImage src={avatar} alt={name} />
             <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
-          {hasActiveStatus && (
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00a884] rounded-full border-2 border-[#202c33]" />
-          )}
         </div>
         
         <div 
@@ -122,9 +98,11 @@ export function ChatHeader({
           <h2 className="text-[#e9edef] text-sm sm:text-base font-medium truncate">
             {name}
           </h2>
-          <p className="text-xs text-[#8696a0] truncate">
-            {online || "desconectado"}
-          </p>
+          {online && (
+            <p className="text-xs text-[#8696a0] truncate">
+              {online}
+            </p>
+          )}
         </div>
       </div>
 
@@ -133,7 +111,7 @@ export function ChatHeader({
           <div className="flex items-center bg-[#2a3942] rounded-md">
             <Input
               value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) => onSearch(e.target.value)}
               placeholder="Buscar mensajes"
               className="bg-transparent border-none text-[#d1d7db] placeholder:text-[#8696a0] focus-visible:ring-0 h-9 pl-10 pr-10"
             />
@@ -143,7 +121,7 @@ export function ChatHeader({
               className="text-[#aebac1]"
               onClick={() => {
                 setIsSearchOpen(false)
-                handleSearch("")
+                onSearch("")
               }}
             >
               <MoreVertical className="h-4 w-4" />
@@ -184,38 +162,47 @@ export function ChatHeader({
                   <Search className="h-4 w-4 mr-2" />
                   Buscar mensajes
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-[#182229] focus:bg-[#182229]" onClick={() => setIsProfileSettingsOpen(true)}>
-                  <Avatar className="h-4 w-4 mr-2">
-                    <AvatarImage src={userProfile?.avatar || DEFAULT_AVATAR} alt="Tu perfil" />
-                    <AvatarFallback>{userProfile?.name?.slice(0, 2).toUpperCase() || "U"}</AvatarFallback>
-                  </Avatar>
-                  Configuración de perfil
-                </DropdownMenuItem>
+                {userProfile && (
+                  <DropdownMenuItem 
+                    className="hover:bg-[#182229] focus:bg-[#182229]" 
+                    onClick={() => setIsProfileSettingsOpen(true)}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Configuración de perfil
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </>
         )}
       </div>
 
-      <ProfileSettings
-        isOpen={isProfileSettingsOpen}
-        onClose={() => setIsProfileSettingsOpen(false)}
-        profile={userProfile}
-        onUpdate={onUpdateProfile}
-      />
-
       <AdminContactCard
         isOpen={isAdminContactOpen}
         onClose={() => setIsAdminContactOpen(false)}
         adminProfile={adminProfile}
+        statuses={statuses}
+        onViewStatus={() => {
+          setIsAdminContactOpen(false)
+          setIsStatusDialogOpen(true)
+        }}
       />
 
       <StatusDialog
         isOpen={isStatusDialogOpen}
         onClose={() => setIsStatusDialogOpen(false)}
-        statuses={adminStatuses}
+        statuses={statuses}
         onStatusResponse={handleStatusResponse}
       />
+
+      {userProfile && (
+        <ProfileSettings
+          isOpen={isProfileSettingsOpen}
+          onClose={() => setIsProfileSettingsOpen(false)}
+          profile={userProfile}
+          onUpdate={onUpdateProfile}
+        />
+      )}
     </header>
   )
 }

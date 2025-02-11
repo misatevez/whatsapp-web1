@@ -4,43 +4,30 @@ import { useAppContext } from "@/contexts/AppContext"
 import { setSelectedChat, updateChat } from "@/contexts/appActions"
 import type { Chat } from "@/types/interfaces"
 
-const DEFAULT_AVATAR =
-  "https://firebasestorage.googleapis.com/v0/b/cargatusfichas.firebasestorage.app/o/admin%2Favatar.png?alt=media&token=54132d01-d241-429a-b131-1be8951406b7"
+const DEFAULT_AVATAR = "https://firebasestorage.googleapis.com/v0/b/cargatusfichas.firebasestorage.app/o/admin%2Favatar.png?alt=media&token=54132d01-d241-429a-b131-1be8951406b7"
 
 function getDisplayTime(rawTimestamp: any): string {
-  console.log("[ChatList] getDisplayTime input:", rawTimestamp)
-  
-  if (!rawTimestamp) {
-    console.log("[ChatList] No timestamp provided")
-    return ""
-  }
+  if (!rawTimestamp) return ""
 
   try {
     // Handle Firestore Timestamp
     if (typeof rawTimestamp === 'object' && rawTimestamp !== null && 'seconds' in rawTimestamp) {
-      console.log("[ChatList] Processing Firestore timestamp:", rawTimestamp)
       const milliseconds = rawTimestamp.seconds * 1000 + (rawTimestamp.nanoseconds || 0) / 1000000
       const date = new Date(milliseconds)
-      const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-      console.log("[ChatList] Formatted Firestore time:", formattedTime)
-      return formattedTime
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
     }
 
     // Handle ISO string
     if (typeof rawTimestamp === 'string') {
-      console.log("[ChatList] Processing ISO string timestamp:", rawTimestamp)
       const date = new Date(rawTimestamp)
       if (!isNaN(date.getTime())) {
-        const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-        console.log("[ChatList] Formatted ISO time:", formattedTime)
-        return formattedTime
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
       }
     }
 
-    console.log("[ChatList] Could not process timestamp:", rawTimestamp)
     return ""
   } catch (error) {
-    console.error("[ChatList] Error formatting timestamp:", error, { rawTimestamp })
+    console.error("Error formatting timestamp:", error, { rawTimestamp })
     return ""
   }
 }
@@ -62,7 +49,7 @@ function parseTimestampToNumber(rawTimestamp: any): number {
 
     return 0
   } catch (error) {
-    console.error("[ChatList] Error parsing timestamp:", error, { rawTimestamp })
+    console.error("Error parsing timestamp:", error, { rawTimestamp })
     return 0
   }
 }
@@ -75,17 +62,9 @@ interface ChatListProps {
 export function ChatList({ chats, selectedChatId }: ChatListProps) {
   const { dispatch } = useAppContext()
 
-  // Log the full chat objects to see all data
-  console.log('[ChatList] Raw chat data:', chats)
-
   const sortedChats = [...chats].sort((a, b) => {
-    // Sort by the latest message timestamp
     const aTime = parseTimestampToNumber(a.lastMessageUserTimestamp || a.lastMessageAdminTimestamp || a.timestamp)
     const bTime = parseTimestampToNumber(b.lastMessageUserTimestamp || b.lastMessageAdminTimestamp || b.timestamp)
-    console.log('[ChatList] Comparing timestamps:', {
-      chatA: { id: a.id, timestamp: aTime },
-      chatB: { id: b.id, timestamp: bTime }
-    })
     return bTime - aTime
   })
 
@@ -101,30 +80,18 @@ export function ChatList({ chats, selectedChatId }: ChatListProps) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto relative z-20 bg-[#111b21]">
+    <div className="flex-1 overflow-y-auto relative z-20 bg-[#111b21] hover:overflow-y-auto">
       {sortedChats.map((chat) => {
         const displayName = chat.name || chat.phoneNumber
-        
-        // Get timestamp and log it with more detail
         const timestamp = chat.lastMessageUserTimestamp || chat.lastMessageAdminTimestamp || chat.timestamp
-        console.log(`[ChatList] Chat ${chat.id} data:`, {
-          lastMessageUserTimestamp: chat.lastMessageUserTimestamp,
-          lastMessageAdminTimestamp: chat.lastMessageAdminTimestamp,
-          timestamp: chat.timestamp,
-          selectedTimestamp: timestamp
-        })
-        
         const displayedTime = getDisplayTime(timestamp)
-        console.log(`[ChatList] Chat ${chat.id} final displayed time:`, displayedTime)
-        
         const badgeCount = chat.unreadCount ?? 0
         const nameClass = badgeCount > 0 ? "text-white font-bold" : "text-[#e9edef] font-medium"
         const lastMessageClass = badgeCount > 0 ? "text-[#e9edef] font-bold" : "text-[#8696a0]"
         
-        // Use the available avatar
-        const avatarUrl = chat.userAvatar || chat.photoURL || chat.avatar || DEFAULT_AVATAR
+        // Use userAvatar field from chat document
+        const avatarUrl = chat.userAvatar || DEFAULT_AVATAR
 
-        // Get the latest message
         const lastMessage = chat.lastMessageUser || chat.lastMessageAdmin || chat.lastMessage || ""
 
         return (

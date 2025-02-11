@@ -2,43 +2,17 @@ import { db } from "../firebase"
 import {
   collection,
   addDoc,
-  getDocs,
-  query,
-  orderBy,
-  serverTimestamp,
   updateDoc,
   doc,
+  serverTimestamp,
   writeBatch,
+  query,
+  orderBy,
+  getDocs,
+  limit,
   increment,
-  Timestamp,
-  onSnapshot,
-  limit
+  where,
 } from "firebase/firestore"
-import type { Message } from "@/types/interfaces"
-
-// Helper function to create a valid Firestore message object
-const createMessageObject = (
-  content: string,
-  isOutgoing: boolean,
-  type: "text" | "image" | "document" = "text",
-  filename?: string
-): Record<string, any> => {
-  const now = Timestamp.now()
-  
-  return {
-    content: content.trim(),
-    isOutgoing,
-    type,
-    timestamp: serverTimestamp(),
-    status: "sent", // Initialize with "sent" status
-    receipts: {
-      sent: now.toDate().toISOString(),
-      delivered: null,
-      read: null
-    },
-    ...(filename && (type === "document" || type === "image") ? { filename } : {})
-  }
-}
 
 export const sendMessage = async (
   chatId: string,
@@ -55,8 +29,20 @@ export const sendMessage = async (
   try {
     console.log("[sendMessage] Sending message:", { chatId, content, isOutgoing, type })
     
-    // Create message object
-    const messageData = createMessageObject(content, isOutgoing, type, filename)
+    // Create message object with proper UTF-8 encoding for emojis
+    const messageData = {
+      content: content.trim(),
+      isOutgoing,
+      type,
+      timestamp: serverTimestamp(),
+      status: "sent",
+      receipts: {
+        sent: new Date().toISOString(),
+        delivered: null,
+        read: null
+      },
+      ...(filename && { filename })
+    }
     
     // Add message to messages subcollection
     const messagesRef = collection(db, `chats/${chatId}/messages`)
@@ -80,28 +66,48 @@ export const sendMessage = async (
   }
 }
 
-export const markMessageAsDelivered = async (chatId: string, messageId: string): Promise<void> => {
-  try {
-    const messageRef = doc(db, `chats/${chatId}/messages/${messageId}`)
-    await updateDoc(messageRef, {
-      status: "delivered",
-      "receipts.delivered": Timestamp.now().toDate().toISOString()
-    })
-  } catch (error) {
-    console.error("[markMessageAsDelivered] Error:", error)
-    throw error
+export const sendWelcomeMessage = async (chatId: string): Promise<void> => {
+  if (!chatId) {
+    console.error("[sendWelcomeMessage] Invalid chat ID")
+    throw new Error("Invalid chat ID")
   }
-}
 
-export const markMessageAsRead = async (chatId: string, messageId: string): Promise<void> => {
   try {
-    const messageRef = doc(db, `chats/${chatId}/messages/${messageId}`)
-    await updateDoc(messageRef, {
-      status: "read",
-      "receipts.read": Timestamp.now().toDate().toISOString()
-    })
+    // First check if there are any existing messages
+    const messagesRef = collection(db, `chats/${chatId}/messages`)
+    const q = query(messagesRef, limit(1))
+    const snapshot = await getDocs(q)
+
+    // Only send welcome message if there are no messages
+    if (snapshot.empty) {
+      console.log("[sendWelcomeMessage] Sending welcome message to chat:", chatId)
+      
+      const welcomeMessage = "¡Hola! 👋 Bienvenido/a a nuestro servicio. ¿En qué puedo ayudarte hoy?"
+      
+      // Send welcome message
+      const messageId = await sendMessage(
+        chatId,
+        welcomeMessage,
+        true, // isOutgoing true for admin messages
+        "text"
+      )
+
+      // Update chat metadata
+      const chatRef = doc(db, "chats", chatId)
+      await updateDoc(chatRef, {
+        lastMessage: welcomeMessage,
+        lastMessageAdmin: welcomeMessage,
+        lastMessageAdminTimestamp: serverTimestamp(),
+        timestamp: serverTimestamp(),
+        unreadCount: 0 // Reset unread count for welcome message
+      })
+
+      console.log("[sendWelcomeMessage] Welcome message sent successfully:", messageId)
+    } else {
+      console.log("[sendWelcomeMessage] Chat already has messages, skipping welcome message")
+    }
   } catch (error) {
-    console.error("[markMessageAsRead] Error:", error)
+    console.error("[sendWelcomeMessage] Error:", error)
     throw error
   }
 }
@@ -114,18 +120,19 @@ export const resetUnreadCount = async (chatId: string): Promise<void> => {
       lastReadByAdmin: serverTimestamp()
     })
 
-    // Also mark all unread messages as read
+    // Get all unread messages
     const messagesRef = collection(db, `chats/${chatId}/messages`)
     const q = query(messagesRef, orderBy("timestamp", "desc"))
     const snapshot = await getDocs(q)
 
+    // Create batch to update message statuses
     const batch = writeBatch(db)
     snapshot.docs.forEach((doc) => {
       const messageData = doc.data()
       if (!messageData.isOutgoing && messageData.status !== "read") {
         batch.update(doc.ref, {
           status: "read",
-          "receipts.read": Timestamp.now().toDate().toISOString()
+          "receipts.read": serverTimestamp()
         })
       }
     })
@@ -149,7 +156,7 @@ export const markMessagesAsRead = async (chatId: string, lastMessageId: string):
       if (doc.id <= lastMessageId && !messageData.isOutgoing && messageData.status !== "read") {
         batch.update(doc.ref, {
           status: "read",
-          "receipts.read": Timestamp.now().toDate().toISOString()
+          "receipts.read": serverTimestamp()
         })
       }
     })
@@ -164,78 +171,6 @@ export const markMessagesAsRead = async (chatId: string, lastMessageId: string):
     })
   } catch (error) {
     console.error("[markMessagesAsRead] Error:", error)
-    throw error
-  }
-}
-
-export const subscribeToMessages = (
-  chatId: string, 
-  callback: (messages: Message[]) => void
-): () => void => {
-  const messagesRef = collection(db, `chats/${chatId}/messages`)
-  const q = query(messagesRef, orderBy("timestamp", "asc"))
-
-  return onSnapshot(q, (snapshot) => {
-    const messages = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Message[]
-    callback(messages)
-  })
-}
-
-export const sendInitialMessage = async (chatId: string, dispatch: any): Promise<void> => {
-  if (!chatId) {
-    throw new Error("Chat ID is required")
-  }
-
-  try {
-    // First check if there are any existing messages
-    const messagesRef = collection(db, `chats/${chatId}/messages`)
-    const q = query(messagesRef, orderBy("timestamp", "asc"), limit(1))
-    const snapshot = await getDocs(q)
-
-    // Only send welcome message if there are no messages
-    if (snapshot.empty) {
-      const messageId = await sendMessage(
-        chatId,
-        "¡Hola! ¿En qué puedo ayudarte?",
-        true // isOutgoing true for admin messages
-      )
-
-      const now = Timestamp.now()
-      
-      const messageData = {
-        id: messageId,
-        content: "¡Hola! ¿En qué puedo ayudarte?",
-        isOutgoing: true,
-        type: "text" as const,
-        timestamp: now.toDate().toISOString(),
-        status: "sent" as const,
-        receipts: {
-          sent: now.toDate().toISOString(),
-          delivered: null,
-          read: null
-        }
-      }
-
-      // Update chat metadata
-      const chatRef = doc(db, "chats", chatId)
-      await updateDoc(chatRef, {
-        lastMessage: messageData.content,
-        lastMessageAdmin: messageData.content,
-        lastMessageAdminTimestamp: serverTimestamp(),
-        timestamp: serverTimestamp()
-      })
-
-      // Update state
-      dispatch({
-        type: "ADD_MESSAGE",
-        payload: { chatId, message: messageData }
-      })
-    }
-  } catch (error) {
-    console.error("[sendInitialMessage] Error:", error)
     throw error
   }
 }

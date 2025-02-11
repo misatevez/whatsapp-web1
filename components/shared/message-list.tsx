@@ -149,7 +149,7 @@ export const MessageList = React.memo(({
               }`}
             >
               {message.type === "text" ? (
-                <p className="text-sm sm:text-base text-[#e9edef]">{message.content}</p>
+                <p className="text-sm sm:text-base text-[#e9edef] whitespace-pre-wrap">{message.content}</p>
               ) : (
                 <ThumbnailPreview
                   content={message.content}

@@ -4,10 +4,11 @@ import { AppProvider } from "@/contexts/AppContext"
 import { AuthProvider } from "@/contexts/auth-context"
 import type { Metadata, Viewport } from "next"
 import type React from "react"
+import dynamic from 'next/dynamic'
 
 const inter = Inter({ subsets: ["latin"] })
 
-const ICON_URL = "https://firebasestorage.googleapis.com/v0/b/cargatusfichas2.firebasestorage.app/o/admin%2Ffavicon.png?alt=media&token=b5607c23-a39a-409d-ba88-64969459e739"
+const ICON_URL = "https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -20,13 +21,13 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Cargatusfichas.YA",
-  description: "Carga tus fichas de manera rápida y segura",
+  title: "WhatsApp Web",
+  description: "Envía y recibe mensajes sin mantener tu teléfono conectado",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Cargatusfichas.YA",
+    title: "WhatsApp Web",
     startupImage: [ICON_URL]
   },
   formatDetection: {
@@ -43,15 +44,10 @@ export const metadata: Metadata = {
   }
 }
 
-function RootLayoutContent({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <AppProvider>
-        {children}
-      </AppProvider>
-    </AuthProvider>
-  )
-}
+// Dynamically import providers to avoid hydration issues
+const Providers = dynamic(() => import('@/components/Providers'), {
+  ssr: false
+})
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -66,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={`${inter.className} overscroll-none`} suppressHydrationWarning>
-        <RootLayoutContent>{children}</RootLayoutContent>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

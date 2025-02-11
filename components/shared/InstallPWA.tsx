@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import Image from "next/image"
 
 export function InstallPWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
@@ -46,25 +47,37 @@ export function InstallPWA() {
     <Dialog open={showInstallPrompt} onOpenChange={setShowInstallPrompt}>
       <DialogContent className="bg-[#111b21] border-none text-[#e9edef]">
         <DialogHeader>
-          <DialogTitle>Instalar WhatsApp Web</DialogTitle>
+          <div className="flex justify-center mb-4">
+            <Image
+              src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
+              alt="WhatsApp Logo"
+              width={64}
+              height={64}
+            />
+          </div>
+          <DialogTitle className="text-center">Instalar WhatsApp Web</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p>Instala WhatsApp Web para una mejor experiencia:</p>
-          <ul className="list-disc list-inside space-y-2 text-sm">
+          <p className="text-center text-[#8696a0]">
+            Instala WhatsApp Web para una mejor experiencia:
+          </p>
+          <ul className="list-disc list-inside space-y-2 text-sm text-[#8696a0]">
             <li>Acceso rápido desde tu pantalla de inicio</li>
             <li>Experiencia de pantalla completa</li>
             <li>Mejor rendimiento</li>
+            <li>Funciona sin conexión</li>
           </ul>
           <div className="flex justify-end gap-2">
             <Button
               variant="ghost"
               onClick={() => setShowInstallPrompt(false)}
+              className="text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]"
             >
               Más tarde
             </Button>
             <Button
               onClick={handleInstall}
-              className="bg-[#00a884] hover:bg-[#02906f]"
+              className="bg-[#00a884] hover:bg-[#02906f] text-white"
             >
               Instalar
             </Button>

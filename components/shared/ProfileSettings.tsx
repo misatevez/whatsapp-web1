@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Camera, X } from "lucide-react"
-import { uploadUserAvatar } from "@/lib/firestore/users"
 import { Progress } from "@/components/ui/progress"
+import { useToast } from "@/contexts/ToastContext"
 
 interface ProfileSettingsProps {
   isOpen: boolean
@@ -27,36 +27,74 @@ export function ProfileSettings({ isOpen, onClose, profile, onUpdate }: ProfileS
   const [about, setAbout] = useState(profile.about || "")
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
+  const { addToast } = useToast()
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setIsLoading(true)
-      try {
-        setUploadProgress(0)
-        const downloadURL = await uploadUserAvatar(
-          profile.phoneNumber,
-          file,
-          (progress) => setUploadProgress(progress)
-        )
-        setAvatar(downloadURL)
-        setUploadProgress(100)
-      } catch (error) {
-        console.error("Error al subir la foto de perfil:", error)
-      } finally {
-        setIsLoading(false)
-      }
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      addToast({
+        title: "Error",
+        description: "Por favor selecciona una imagen válida",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      addToast({
+        title: "Error",
+        description: "La imagen no debe superar los 5MB",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      setUploadProgress(0)
+      const downloadURL = await onUpdate(name, file as any, about)
+      setAvatar(downloadURL)
+      setUploadProgress(100)
+      
+      addToast({
+        title: "Éxito",
+        description: "Foto de perfil actualizada correctamente",
+      })
+    } catch (error) {
+      console.error("Error al subir la foto de perfil:", error)
+      addToast({
+        title: "Error",
+        description: "No se pudo actualizar la foto de perfil",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleSave = async () => {
-    if (!name.trim()) return
+    if (!name.trim() || isLoading) return
+    
     setIsLoading(true)
     try {
       await onUpdate(name, avatar, about)
       onClose()
+      
+      addToast({
+        title: "Éxito",
+        description: "Perfil actualizado correctamente",
+      })
     } catch (error) {
-      console.error("Error al actualizar el perfil:", error)
+      console.error("Error al actualizar perfil:", error)
+      addToast({
+        title: "Error",
+        description: "No se pudo actualizar el perfil",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -66,7 +104,7 @@ export function ProfileSettings({ isOpen, onClose, profile, onUpdate }: ProfileS
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-[#222e35] border-none text-[#e9edef] max-w-md p-0">
         <DialogHeader className="bg-[#202c33] px-4 py-3 flex-row items-center justify-between">
-          <DialogTitle className="text-[#e9edef] text-lg">Configuración de Perfil</DialogTitle>
+          <DialogTitle className="text-[#e9edef]">Configuración de Perfil</DialogTitle>
           <Button variant="ghost" size="icon" onClick={onClose} className="text-[#aebac1] hover:text-[#e9edef]">
             <X className="h-5 w-5" />
           </Button>
@@ -148,7 +186,7 @@ export function ProfileSettings({ isOpen, onClose, profile, onUpdate }: ProfileS
           <Button
             onClick={handleSave}
             className="w-full bg-[#00a884] hover:bg-[#017561] text-white font-medium h-11 transition-colors"
-            disabled={isLoading}
+            disabled={isLoading || !name.trim()}
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

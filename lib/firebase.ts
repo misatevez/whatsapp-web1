@@ -1,8 +1,9 @@
 import { initializeApp, getApps } from "firebase/app"
-import { getFirestore } from "firebase/firestore"
+import { getFirestore, enableMultiTabIndexedDbPersistence } from "firebase/firestore"
 import { getStorage } from "firebase/storage"
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth"
 
+// Initialize Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -12,15 +13,31 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-// Initialize Firebase only if no apps exist
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0]
+// Initialize Firebase only if no apps exist and we're in the browser
+let app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+let db: any = null
+let storage: any = null
+let auth: any = null
 
-// Initialize services
-const db = getFirestore(app)
-const storage = getStorage(app)
-const auth = getAuth(app)
+// Only initialize Firebase services in the browser
+if (typeof window !== 'undefined') {
+  db = getFirestore(app)
+  storage = getStorage(app)
+  auth = getAuth(app)
 
-// Set persistence to LOCAL (survives browser restarts)
-setPersistence(auth, browserLocalPersistence)
+  // Enable offline persistence
+  enableMultiTabIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('Multiple tabs open, persistence enabled in first tab only')
+    } else if (err.code === 'unimplemented') {
+      console.warn('Current browser does not support persistence')
+    }
+  })
+
+  // Set persistence to LOCAL
+  setPersistence(auth, browserLocalPersistence).catch(error => {
+    console.error('Error setting auth persistence:', error)
+  })
+}
 
 export { db, storage, auth }

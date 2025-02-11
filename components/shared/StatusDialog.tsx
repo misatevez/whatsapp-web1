@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -19,6 +18,7 @@ interface StatusDialogProps {
 export function StatusDialog({ isOpen, onClose, statuses, onStatusResponse }: StatusDialogProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [response, setResponse] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % statuses.length)
@@ -28,11 +28,18 @@ export function StatusDialog({ isOpen, onClose, statuses, onStatusResponse }: St
     setCurrentIndex((prev) => (prev - 1 + statuses.length) % statuses.length)
   }
 
-  const handleSendResponse = () => {
-    if (response.trim() && statuses[currentIndex]) {
-      onStatusResponse(response.trim(), statuses[currentIndex].imageUrl)
+  const handleSendResponse = async () => {
+    if (!response.trim() || !statuses[currentIndex]) return
+    
+    setIsLoading(true)
+    try {
+      await onStatusResponse(response.trim(), statuses[currentIndex].imageUrl)
       setResponse("")
       onClose()
+    } catch (error) {
+      console.error("Error sending status response:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -56,7 +63,7 @@ export function StatusDialog({ isOpen, onClose, statuses, onStatusResponse }: St
         </DialogHeader>
 
         <div className="relative">
-          {/* Status Image Container - More compact with 4:5 aspect ratio */}
+          {/* Status Image Container */}
           <div className="relative aspect-[4/5] w-full bg-black">
             <Image
               src={currentStatus.imageUrl}
@@ -96,7 +103,7 @@ export function StatusDialog({ isOpen, onClose, statuses, onStatusResponse }: St
           )}
         </div>
 
-        {/* Response Input - Compact design */}
+        {/* Response Input */}
         <div className="p-3 bg-[#202c33] flex items-center gap-2">
           <Input
             value={response}
@@ -104,14 +111,19 @@ export function StatusDialog({ isOpen, onClose, statuses, onStatusResponse }: St
             placeholder="Responder al estado..."
             className="flex-1 bg-[#2a3942] border-none text-[#d1d7db] placeholder:text-[#8696a0] focus-visible:ring-1 focus-visible:ring-[#00a884] h-9"
             onKeyPress={(e) => e.key === "Enter" && handleSendResponse()}
+            disabled={isLoading}
           />
           <Button
             onClick={handleSendResponse}
-            disabled={!response.trim()}
+            disabled={!response.trim() || isLoading}
             className="bg-[#00a884] hover:bg-[#017561] text-white h-9 w-9 p-0"
             size="icon"
           >
-            <Send className="h-4 w-4" />
+            {isLoading ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
 

@@ -1,6 +1,5 @@
-
 import { db, storage } from "../firebase"
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore"
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"
 import type { UserProfile } from "@/types/interfaces"
 
@@ -24,11 +23,33 @@ export async function updateUserProfile(
   updates: Partial<UserProfile>
 ): Promise<void> {
   try {
+    // Validate phoneNumber
+    if (!phoneNumber) {
+      throw new Error("Phone number is required")
+    }
+
+    // Create references
     const userRef = doc(db, "users", phoneNumber)
-    await setDoc(userRef, {
+    const chatRef = doc(db, "chats", phoneNumber)
+
+    // Prepare updates with timestamps
+    const timestamp = serverTimestamp()
+    const userUpdates = {
       ...updates,
-      updatedAt: serverTimestamp()
-    }, { merge: true })
+      updatedAt: timestamp
+    }
+
+    const chatUpdates = {
+      ...(updates.name && { name: updates.name }),
+      ...(updates.avatar && { userAvatar: updates.avatar }),
+      updatedAt: timestamp
+    }
+
+    // Update both documents in a batch
+    await Promise.all([
+      setDoc(userRef, userUpdates, { merge: true }),
+      updateDoc(chatRef, chatUpdates)
+    ])
   } catch (error) {
     console.error("Error updating user profile:", error)
     throw error
@@ -41,10 +62,21 @@ export async function uploadUserAvatar(
   onProgress?: (progress: number) => void
 ): Promise<string> {
   try {
-    // Create storage reference with a unique filename
-    const storageRef = ref(storage, `users/${phoneNumber}/avatar_${Date.now()}_${file.name}`)
+    // Validate inputs
+    if (!phoneNumber || !file) {
+      throw new Error("Phone number and file are required")
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      throw new Error("File must be an image")
+    }
+
+    // Create storage reference with proper path and file extension
+    const fileExtension = file.name.split('.').pop() || 'jpg'
+    const storageRef = ref(storage, `users/${phoneNumber}/avatar.${fileExtension}`)
     
-    // Create upload task with uploadBytesResumable
+    // Create upload task
     const uploadTask = uploadBytesResumable(storageRef, file)
     
     // Return a promise that resolves with the download URL
@@ -52,15 +84,15 @@ export async function uploadUserAvatar(
       uploadTask.on(
         "state_changed",
         (snapshot) => {
-          // Handle progress
+          // Handle progress updates
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
           if (onProgress) {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
             onProgress(progress)
           }
         },
         (error) => {
-          // Handle error
-          console.error("Error uploading avatar:", error)
+          // Handle upload errors
+          console.error("Error uploading file:", error)
           reject(error)
         },
         async () => {
@@ -68,10 +100,10 @@ export async function uploadUserAvatar(
             // Get download URL
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
             
-            // Update user profile with new avatar
+            // Update profile with new avatar
             await updateUserProfile(phoneNumber, {
               avatar: downloadURL,
-              updatedAt: serverTimestamp()
+              updatedAt: new Date().toISOString()
             })
             
             resolve(downloadURL)
@@ -83,7 +115,7 @@ export async function uploadUserAvatar(
       )
     })
   } catch (error) {
-    console.error("Error starting upload:", error)
+    console.error("Error initiating upload:", error)
     throw error
   }
 }

@@ -19,13 +19,9 @@ export const { fetchChats, fetchChat, upsertChat, editContact, blockContact, unb
 
 // Messages
 export const { 
-  fetchChatMessages, 
-  sendMessage, 
-  addMessageToChat,
+  sendMessage,
   resetUnreadCount,
   markMessagesAsRead,
-  getUnreadCount,
-  sendInitialMessage
 } = messages
 
 // Admin Profile

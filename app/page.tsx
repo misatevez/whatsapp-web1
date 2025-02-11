@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
-import { doc, setDoc, getDoc } from "firebase/firestore"
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { sendWelcomeMessage } from "@/lib/firestore/messages"
 
 export default function HomePage() {
   const [phoneNumber, setPhoneNumber] = useState("")
@@ -32,11 +33,14 @@ export default function HomePage() {
           phoneNumber: phoneNumber,
           name: "",
           lastMessage: "",
-          timestamp: new Date().toISOString(),
+          timestamp: serverTimestamp(),
           unreadCount: 0,
           isAgendado: false,
-          createdAt: new Date().toISOString()
+          createdAt: serverTimestamp()
         })
+
+        // Send welcome message
+        await sendWelcomeMessage(phoneNumber)
       }
 
       // Save phone to localStorage
